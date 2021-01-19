@@ -52,6 +52,7 @@ pub use self::sh::Sh;
 pub use self::sortedmulti::SortedMultiVec;
 
 mod checksum;
+pub use self::checksum::desc_checksum;
 mod key;
 pub use self::key::{
     DescriptorKeyParseError, DescriptorPublicKey, DescriptorSecretKey, DescriptorSinglePriv,
