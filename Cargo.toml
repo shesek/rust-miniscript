@@ -1,6 +1,10 @@
 [package]
 name = "miniscript"
+<<<<<<< HEAD
 version = "6.0.1"
+=======
+version = "5.1.10"
+>>>>>>> Update Cargo Toml
 authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>, Sanket Kanjalkar <sanket1729@gmail.com>"]
 repository = "https://github.com/apoelstra/miniscript"
 description = "Miniscript: a subset of Bitcoin Script designed for analysis"
@@ -17,8 +21,7 @@ rand = ["bitcoin/rand"]
 use-schemars = ["bitcoin/use-schemars", "schemars"]
 
 [dependencies]
-# bitcoin = "0.27"
-bitcoin = {git = "https://github.com/rust-bitcoin/rust-bitcoin", rev = "0e2e55971275da64ceb62e8991a0a5fa962cb8b1"}
+bitcoin = "^0.26.0"
 
 [dependencies.schemars]
 version = "0.8.0"
