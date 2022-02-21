@@ -380,7 +380,7 @@ pub fn extract<C: secp256k1::Verification>(
         }
 
         if let Some(witness) = input.final_script_witness.as_ref() {
-            ret.input[n].witness = Witness::from_vec(witness.to_owned());
+            ret.input[n].witness = witness.clone();
         }
         if let Some(script_sig) = input.final_script_sig.as_ref() {
             ret.input[n].script_sig = script_sig.clone();
