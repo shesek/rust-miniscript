@@ -339,8 +339,11 @@ pub fn finalize_helper<C: secp256k1::Verification>(
     // Check well-formedness of input data
     for (n, input) in psbt.inputs.iter().enumerate() {
         // TODO: Fix this so that target throws an error if can't treat flag as a ecdsa type
-        let target = input.sighash_type.unwrap_or(bitcoin::EcdsaSigHashType::All.into()).ecdsa_hash_ty()
-                        .unwrap_or(bitcoin::EcdsaSigHashType::All.into());
+        let target = input
+            .sighash_type
+            .unwrap_or(bitcoin::EcdsaSigHashType::All.into())
+            .ecdsa_hash_ty()
+            .unwrap_or(bitcoin::EcdsaSigHashType::All.into());
         for (key, ecdsa_sig) in &input.partial_sigs {
             let flag = bitcoin::EcdsaSigHashType::from_u32_standard(ecdsa_sig.hash_ty as u32)
                 .map_err(|_| {

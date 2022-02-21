@@ -244,7 +244,8 @@ impl<'txin> Interpreter<'txin> {
                     bitcoin::EcdsaSigHashType::NonePlusAnyoneCanPay => sighashes[4],
                     bitcoin::EcdsaSigHashType::SinglePlusAnyoneCanPay => sighashes[5],
                 };
-                secp.verify_ecdsa(&sighash, &ecdsa_sig.sig, &pk.inner).is_ok()
+                secp.verify_ecdsa(&sighash, &ecdsa_sig.sig, &pk.inner)
+                    .is_ok()
             },
         )
     }
@@ -842,7 +843,8 @@ mod tests {
     fn sat_constraints() {
         let (pks, der_sigs, secp_sigs, sighash, secp) = setup_keys_sigs(10);
         let vfyfn_ = |pk: &bitcoin::PublicKey, ecdsa_sig: bitcoin::EcdsaSig| {
-            secp.verify_ecdsa(&sighash, &ecdsa_sig.sig, &pk.inner).is_ok()
+            secp.verify_ecdsa(&sighash, &ecdsa_sig.sig, &pk.inner)
+                .is_ok()
         };
 
         fn from_stack<'txin, 'elem, F>(
