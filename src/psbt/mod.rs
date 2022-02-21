@@ -23,7 +23,6 @@ use std::collections::BTreeMap;
 use std::{error, fmt};
 
 use bitcoin;
-use bitcoin::blockdata::witness::Witness;
 use bitcoin::hashes::{hash160, ripemd160, sha256, sha256d};
 use bitcoin::secp256k1::{self, Secp256k1};
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;

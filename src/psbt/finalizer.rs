@@ -400,7 +400,7 @@ pub fn finalize_helper<C: secp256k1::Verification>(
         input.final_script_witness = if witness.is_empty() {
             None
         } else {
-            Some(Witness(witness))
+            Some(Witness::from_vec(witness))
         };
         //reset everything
         input.partial_sigs.clear(); // 0x02
