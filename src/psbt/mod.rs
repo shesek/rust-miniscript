@@ -122,7 +122,7 @@ impl fmt::Display for InputError {
             InputError::InvalidSignature {
                 ref pubkey,
                 ref sig,
-            } => write!(f, "PSBT: bad signature {} for key {:?}", pubkey.key, sig),
+            } => write!(f, "PSBT: bad signature {} for key {:?}", pubkey.inner, sig),
             InputError::KeyErr(ref e) => write!(f, "Key Err: {}", e),
             InputError::Interpreter(ref e) => write!(f, "Interpreter: {}", e),
             InputError::SecpErr(ref e) => write!(f, "Secp Err: {}", e),
@@ -165,7 +165,7 @@ impl fmt::Display for InputError {
                 f,
                 "PSBT: signature with key {:?} had \
                  sighashflag {:?} rather than required {:?}",
-                pubkey.key, got, required
+                pubkey.inner, got, required
             ),
             InputError::CouldNotSatisfyTr => {
                 write!(f, "Could not satisfy Tr descriptor")
