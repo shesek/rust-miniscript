@@ -442,7 +442,7 @@ pub fn parse<Ctx: ScriptContext>(
                             // `OP_ADD` or not and do the right thing
                         },
                     ),
-                    Tk::Drop, Tk::CheckTemplateVerify, Tk::Hash32(h) => term.reduce0(Terminal::TxTemplate(sha256::Hash::from_inner(h)))?,
+                    Tk::Drop, Tk::CheckTemplateVerify, Tk::Bytes32(h) => term.reduce0(Terminal::TxTemplate(sha256::Hash::from_slice(h).map_err(|_| Error::Unexpected("Wrong Sized Hash in Bytes32".into()))?))?,
                     // fromaltstack
                     Tk::FromAltStack => {
                         non_term.push(NonTerm::Alt);
