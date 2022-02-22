@@ -273,6 +273,7 @@ pub fn interpreter_check<C: secp256k1::Verification>(
     psbt: &Psbt,
     secp: &Secp256k1<C>,
 ) -> Result<(), Error> {
+    let tx = psbt.clone().extract_tx();
     for (index, input) in psbt.inputs.iter().enumerate() {
         let spk = get_scriptpubkey(psbt, index).map_err(|e| Error::InputError(e, index))?;
         let empty_script_sig = Script::new();
@@ -291,8 +292,9 @@ pub fn interpreter_check<C: secp256k1::Verification>(
         let csv = psbt.unsigned_tx.input[index].sequence;
         let amt = get_amt(psbt, index).map_err(|e| Error::InputError(e, index))?;
 
+
         let mut interpreter =
-            interpreter::Interpreter::from_txdata(spk, &script_sig, &witness, cltv, csv)
+            interpreter::Interpreter::from_txdata(spk, &script_sig, &witness, cltv, csv, super::get_ctv_hash(&tx, index as u32))
                 .map_err(|e| Error::InputError(InputError::Interpreter(e), index))?;
 
         let vfyfn = interpreter

@@ -43,6 +43,7 @@ pub struct Interpreter<'txin> {
     script_code: bitcoin::Script,
     age: u32,
     height: u32,
+    txtemplate: sha256::Hash,
 }
 
 impl<'txin> Interpreter<'txin> {
@@ -58,6 +59,7 @@ impl<'txin> Interpreter<'txin> {
         witness: &'txin Witness,
         age: u32,
         height: u32,
+        txtemplate: sha256::Hash
     ) -> Result<Self, Error> {
         let (inner, stack, script_code) = inner::from_txdata(spk, script_sig, witness)?;
         Ok(Interpreter {
@@ -66,6 +68,7 @@ impl<'txin> Interpreter<'txin> {
             script_code,
             age,
             height,
+            txtemplate,
         })
     }
 
@@ -106,6 +109,7 @@ impl<'txin> Interpreter<'txin> {
             age: self.age,
             height: self.height,
             has_errored: false,
+            txtemplate: &self.txtemplate,
         }
     }
 
@@ -302,6 +306,11 @@ pub enum SatisfiedConstraint<'intp, 'txin> {
         /// The value of Absolute timelock
         time: &'intp u32,
     },
+    /// Check Template Verify Covenant
+    TxTemplate {
+        /// The hash value of the transaction
+        hash: &'intp sha256::Hash
+    }
 }
 
 ///This is used by the interpreter to know which evaluation state a AstemElem is.
@@ -338,6 +347,7 @@ pub struct Iter<'intp, 'txin: 'intp, F: FnMut(&bitcoin::PublicKey, bitcoin::Ecds
     age: u32,
     height: u32,
     has_errored: bool,
+    txtemplate: &'intp sha256::Hash,
 }
 
 ///Iterator for Iter
@@ -732,6 +742,14 @@ where
                         }
                     }
                 }
+                Terminal::TxTemplate(h) => {
+                    debug_assert_eq!(node_state.n_evaluated, 0);
+                    debug_assert_eq!(node_state.n_satisfied, 0);
+                    let res = self.stack.evaluate_txtemplate(&self.txtemplate);
+                    if res.is_some() {
+                        return res;
+                    }
+                },
                 //All other match patterns should not be reached in any valid
                 //type checked Miniscript
                 _ => return Some(Err(Error::CouldNotEvaluate)),
