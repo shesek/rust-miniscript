@@ -23,8 +23,8 @@ use std::collections::BTreeMap;
 use std::{error, fmt};
 
 use bitcoin;
-use bitcoin::hashes::{hash160, ripemd160, sha256, sha256d, Hash};
 use bitcoin::consensus::Encodable;
+use bitcoin::hashes::{hash160, ripemd160, sha256, sha256d, Hash};
 use bitcoin::secp256k1::{self, Secp256k1};
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::Script;
@@ -344,7 +344,6 @@ impl<'psbt, Pk: MiniscriptKey + ToPublicKey> Satisfier<Pk> for PsbtInputSatisfie
         get_ctv_hash(&self.psbt.clone().extract_tx(), self.index as u32) == h
     }
 }
-
 
 pub(crate) fn get_ctv_hash(tx: &bitcoin::Transaction, input_index: u32) -> sha256::Hash {
     let mut ctv_hash = sha256::Hash::engine();
