@@ -1,7 +1,5 @@
 use bitcoin;
-use bitcoin::blockdata::opcodes;
 use bitcoin::blockdata::script;
-use bitcoin::blockdata::script::Instruction;
 use bitcoin::Script;
 use miniscript::context;
 
@@ -51,12 +49,5 @@ impl MsKeyBuilder for script::Builder {
 
 // This belongs in rust-bitcoin, make this upstream later
 pub(crate) fn script_is_v1_tr(s: &Script) -> bool {
-    let mut iter = s.instructions_minimal();
-    if s.len() != 34
-        || iter.next() != Some(Ok(Instruction::Op(opcodes::all::OP_PUSHNUM_1)))
-        || iter.next() != Some(Ok(Instruction::Op(opcodes::all::OP_PUSHBYTES_32)))
-    {
-        return false;
-    }
-    return true;
+    s.is_v1_p2tr()
 }
