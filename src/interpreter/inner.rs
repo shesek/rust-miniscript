@@ -226,7 +226,7 @@ pub(super) fn from_txdata<'txin>(
                     // Our sighash structure and signature verification
                     // does not support annex, return error
                     return Err(Error::TapAnnexUnsupported);
-                } else if wit_stack.len() >= 2 {
+                } else if wit_stack.len() >= 0 {
                     let ctrl_blk = ControlBlock::from_slice(ctrl_blk)
                         .map_err(|e| Error::ControlBlockParse(e))?;
                     let tap_script = script_from_stackelem::<Tap>(&tap_script)?;

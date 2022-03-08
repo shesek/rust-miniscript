@@ -99,6 +99,8 @@
 #![deny(missing_docs)]
 
 pub extern crate bitcoin;
+#[cfg(feature = "schemars")]
+pub extern crate schemars;
 #[cfg(feature = "serde")]
 pub extern crate serde;
 #[cfg(all(test, feature = "unstable"))]

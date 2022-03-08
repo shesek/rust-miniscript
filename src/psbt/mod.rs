@@ -23,7 +23,8 @@ use std::collections::BTreeMap;
 use std::{error, fmt};
 
 use bitcoin;
-use bitcoin::hashes::{hash160, ripemd160, sha256, sha256d};
+use bitcoin::consensus::Encodable;
+use bitcoin::hashes::{hash160, ripemd160, sha256, sha256d, Hash};
 use bitcoin::secp256k1::{self, Secp256k1};
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::Script;
@@ -270,7 +271,7 @@ impl<'psbt, Pk: MiniscriptKey + ToPublicKey> Satisfier<Pk> for PsbtInputSatisfie
     fn lookup_ecdsa_sig(&self, pk: &Pk) -> Option<bitcoin::EcdsaSig> {
         self.psbt.inputs[self.index]
             .partial_sigs
-            .get(&pk.to_public_key().inner)
+            .get(&pk.to_public_key())
             .map(|sig| *sig)
     }
 
@@ -282,10 +283,10 @@ impl<'psbt, Pk: MiniscriptKey + ToPublicKey> Satisfier<Pk> for PsbtInputSatisfie
             .partial_sigs
             .iter()
             .filter(|&(pubkey, _sig)| {
-                bitcoin::PublicKey::new(*pubkey).to_pubkeyhash() == Pk::hash_to_hash160(pkh)
+                pubkey.to_pubkeyhash() == Pk::hash_to_hash160(pkh)
             })
             .next()
-            .map(|(pk, sig)| (bitcoin::PublicKey::new(*pk), *sig))
+            .map(|(pk, sig)| (*pk, *sig))
     }
 
     fn check_after(&self, n: u32) -> bool {
@@ -342,8 +343,48 @@ impl<'psbt, Pk: MiniscriptKey + ToPublicKey> Satisfier<Pk> for PsbtInputSatisfie
             .get(&h)
             .and_then(try_vec_as_preimage32)
     }
+
+    fn check_tx_template(&self, h: sha256::Hash) -> bool {
+        // do costly extract otherwise the scriptSigs are empty
+        get_ctv_hash(&self.psbt.clone().extract_tx(), self.index as u32) == h
+    }
 }
 
+pub(crate) fn get_ctv_hash(tx: &bitcoin::Transaction, input_index: u32) -> sha256::Hash {
+    let mut ctv_hash = sha256::Hash::engine();
+    tx.version.consensus_encode(&mut ctv_hash).unwrap();
+    tx.lock_time.consensus_encode(&mut ctv_hash).unwrap();
+    (tx.input.len() as u32)
+        .consensus_encode(&mut ctv_hash)
+        .unwrap();
+    {
+        let mut enc = sha256::Hash::engine();
+        for seq in tx.input.iter().map(|i| i.sequence) {
+            seq.consensus_encode(&mut enc).unwrap();
+        }
+        sha256::Hash::from_engine(enc)
+            .into_inner()
+            .consensus_encode(&mut ctv_hash)
+            .unwrap();
+    }
+
+    (tx.output.len() as u32)
+        .consensus_encode(&mut ctv_hash)
+        .unwrap();
+
+    {
+        let mut enc = sha256::Hash::engine();
+        for out in tx.output.iter() {
+            out.consensus_encode(&mut enc).unwrap();
+        }
+        sha256::Hash::from_engine(enc)
+            .into_inner()
+            .consensus_encode(&mut ctv_hash)
+            .unwrap();
+    }
+    input_index.consensus_encode(&mut ctv_hash).unwrap();
+    sha256::Hash::from_engine(ctv_hash)
+}
 fn try_vec_as_preimage32(vec: &Vec<u8>) -> Option<Preimage32> {
     if vec.len() == 32 {
         let mut arr = [0u8; 32];

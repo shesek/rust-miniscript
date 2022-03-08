@@ -20,7 +20,9 @@
 //!
 
 use bitcoin::blockdata::witness::Witness;
+use bitcoin::TxOut;
 use bitcoin::util::{sighash, taproot};
+use std::borrow::Borrow;
 use std::fmt;
 use std::str::FromStr;
 
@@ -51,6 +53,7 @@ pub struct Interpreter<'txin> {
     script_code: Option<bitcoin::Script>,
     age: u32,
     height: u32,
+    txtemplate: sha256::Hash,
 }
 
 // A type representing functions for checking signatures that accept both
@@ -172,6 +175,7 @@ impl<'txin> Interpreter<'txin> {
         witness: &'txin Witness,
         age: u32,
         height: u32,
+        txtemplate: sha256::Hash,
     ) -> Result<Self, Error> {
         let (inner, stack, script_code) = inner::from_txdata(spk, script_sig, witness)?;
         Ok(Interpreter {
@@ -180,6 +184,7 @@ impl<'txin> Interpreter<'txin> {
             script_code,
             age,
             height,
+            txtemplate,
         })
     }
 
@@ -212,6 +217,7 @@ impl<'txin> Interpreter<'txin> {
             age: self.age,
             height: self.height,
             has_errored: false,
+            txtemplate: &self.txtemplate,
         }
     }
 
@@ -224,27 +230,27 @@ impl<'txin> Interpreter<'txin> {
     /// - Insufficient sighash information is present
     /// - sighash single without corresponding output
     // TODO: Create a good first isse to change this to error
-    pub fn verify_sig<C: secp256k1::Verification>(
+    pub fn verify_sig<C: secp256k1::Verification, T: Borrow<TxOut>>(
         &self,
         secp: &secp256k1::Secp256k1<C>,
         tx: &bitcoin::Transaction,
         input_idx: usize,
-        prevouts: &sighash::Prevouts,
+        prevouts: &sighash::Prevouts<T>,
         sig: &KeySigPair,
     ) -> bool {
-        fn get_prevout<'u>(
-            prevouts: &sighash::Prevouts<'u>,
+        fn get_prevout<'u, T: Borrow<TxOut>>(
+            prevouts: &'u sighash::Prevouts<'u, T>,
             input_index: usize,
         ) -> Option<&'u bitcoin::TxOut> {
             match prevouts {
                 sighash::Prevouts::One(index, prevout) => {
                     if input_index == *index {
-                        Some(prevout)
+                        Some(prevout.borrow())
                     } else {
                         None
                     }
                 }
-                sighash::Prevouts::All(prevouts) => prevouts.get(input_index),
+                sighash::Prevouts::All(prevouts) => prevouts.get(input_index).map(|p| p.borrow()),
             }
         }
         let mut cache = bitcoin::util::sighash::SigHashCache::new(tx);
@@ -318,12 +324,12 @@ impl<'txin> Interpreter<'txin> {
     /// - For legacy outputs, no information about prevouts is required
     /// - For segwitv0 outputs, prevout at corresponding index with correct amount must be provided
     /// - For taproot outputs, information about all prevouts must be supplied
-    pub fn iter<'iter, C: secp256k1::Verification>(
+    pub fn iter<'iter, C: secp256k1::Verification, T: Borrow<TxOut>>(
         &'iter self,
         secp: &'iter secp256k1::Secp256k1<C>,
         tx: &'txin bitcoin::Transaction,
         input_idx: usize,
-        prevouts: &'iter sighash::Prevouts, // actually a 'prevouts, but 'prevouts: 'iter
+        prevouts: &'iter sighash::Prevouts<'iter, T>, // actually a 'prevouts, but 'prevouts: 'iter
     ) -> Iter<'txin, 'iter> {
         self.iter_custom(Box::new(move |sig| {
             self.verify_sig(secp, tx, input_idx, prevouts, sig)
@@ -495,6 +501,11 @@ pub enum SatisfiedConstraint {
         /// The value of Absolute timelock
         time: u32,
     },
+    /// Check Template Verify Covenant
+    TxTemplate {
+        /// The hash value of the transaction
+        hash: sha256::Hash,
+    },
 }
 
 ///This is used by the interpreter to know which evaluation state a AstemElem is.
@@ -531,6 +542,7 @@ pub struct Iter<'intp, 'txin: 'intp> {
     age: u32,
     height: u32,
     has_errored: bool,
+    txtemplate: &'intp sha256::Hash,
 }
 
 ///Iterator for Iter
@@ -921,6 +933,14 @@ where
                             ),
                             x => return x, //forward errors as is
                         }
+                    }
+                }
+                Terminal::TxTemplate(ref h) => {
+                    debug_assert_eq!(node_state.n_evaluated, 0);
+                    debug_assert_eq!(node_state.n_satisfied, 0);
+                    let res = self.stack.evaluate_txtemplate(&h, &self.txtemplate);
+                    if res.is_some() {
+                        return res;
                     }
                 }
                 //All other match patterns should not be reached in any valid

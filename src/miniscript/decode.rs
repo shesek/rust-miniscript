@@ -190,6 +190,9 @@ pub enum Terminal<Pk: MiniscriptKey, Ctx: ScriptContext> {
     Multi(usize, Vec<Pk>),
     /// <key> CHECKSIG (<key> CHECKSIGADD)*(n-1) k NUMEQUAL
     MultiA(usize, Vec<Pk>),
+    // Other
+    /// `<hash> OP_CHECKTEMPLATEVERIFY OP_DROP`
+    TxTemplate(sha256::Hash),
 }
 
 macro_rules! match_token {
@@ -439,6 +442,7 @@ pub fn parse<Ctx: ScriptContext>(
                             // `OP_ADD` or not and do the right thing
                         },
                     ),
+                    Tk::Drop, Tk::CheckTemplateVerify, Tk::Bytes32(h) => term.reduce0(Terminal::TxTemplate(sha256::Hash::from_slice(h).map_err(|_| Error::Unexpected("Wrong Sized Hash in Bytes32".into()))?))?,
                     // fromaltstack
                     Tk::FromAltStack => {
                         non_term.push(NonTerm::Alt);
